@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APEXVIEW TERMINAL — Real-Time Multi-Asset Market Terminal & Live Charts</title>
+
+  <!-- Official SEO & Open Graph Social Preview Metadata -->
+  <meta name="description" content="APEXVIEW TERMINAL is an institutional-grade real-time multi-asset market terminal powered by live TradingView market data, featuring FOREX.com XAU/USD charts, multi-chart workspaces, and live session telemetry." />
+  <meta name="keywords" content="APEXVIEW TERMINAL, XAUUSD live chart, FOREX.com gold, TradingView terminal, multi-asset charts, full screen trading chart" />
+  <meta name="author" content="APEXVIEW TERMINAL" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="APEXVIEW TERMINAL — Real-Time Multi-Asset Market Terminal & Live Charts" />
+  <meta property="og:description" content="Full-screen live market terminal with real-time FOREXCOM:XAUUSD charts, multi-chart workspaces, and live IST/UTC session telemetry." />
+  <meta property="og:site_name" content="APEXVIEW TERMINAL" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="APEXVIEW TERMINAL — Real-Time Multi-Asset Market Terminal" />
+  <meta name="twitter:description" content="Real-time multi-asset charting, FOREX.com gold spot analytics, and live session telemetry." />
+
+  <!-- Embedded SVG Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232962ff'/%3E%3Cstop offset='100%25' stop-color='%23f59e0b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='7' fill='%230b0e14'/%3E%3Crect x='1' y='1' width='30' height='30' rx='6' fill='none' stroke='url(%23g)' stroke-width='2'/%3E%3Cpath d='M6 22l6-6 4 4 10-11M20 9h6v6' fill='none' stroke='%23f59e0b' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Official TradingView Advanced Charting Library -->
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            apex: {
+              deep: '#0b0e14',
+              bg: '#131722',
+              panel: '#1e222d',
+              hover: '#2a2e39',
+              border: '#2a2e39',
+              blue: '#2962ff',
+              blueHover: '#1e53e5',
+              gold: '#f59e0b',
+              bull: '#089981',
+              bear: '#f23645',
+              text: '#d1d4dc',
+              muted: '#787b86',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      background-color: #0b0e14;
+      color: #d1d4dc;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    body.theme-light {
+      background-color: #f0f3fa;
+      color: #131722;
+    }
+    .tabular {
+      font-variant-numeric: tabular-nums;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* TradingView Widget Container Sizing */
+    .tv-embed-host,
+    .tradingview-widget-container,
+    .tradingview-widget-container__widget {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .tv-skeleton {
+      background: linear-gradient(90deg, rgba(30,34,45,0.3) 25%, rgba(42,46,57,0.65) 50%, rgba(30,34,45,0.3) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.6s infinite linear;
+    }
+    @keyframes priceUpFlash {
+      0% { background-color: rgba(8, 153, 129, 0.35); }
+      100% { background-color: transparent; }
+    }
+    @keyframes priceDownFlash {
+      0% { background-color: rgba(242, 54, 69, 0.35); }
+      100% { background-color: transparent; }
+    }
+    .flash-up { animation: priceUpFlash 0.45s ease-out; }
+    .flash-down { animation: priceDownFlash 0.45s ease-out; }
+
+    .chart-slot-ring {
+      box-shadow: inset 0 0 0 1px #2962ff;
+    }
+  </style>
+</head>
+<body class="theme-dark flex flex-col h-screen w-screen overflow-hidden select-none">
+
+  <!-- ======================================================================= -->
+  <!-- 1. COLLAPSIBLE OFFICIAL PLATFORM HERO / WELCOME BANNER                  -->
+  <!-- ======================================================================= -->
+  <div id="official-hero-banner" class="bg-gradient-to-r from-[#0b0e14] via-[#131929] to-[#0b0e14] border-b border-apex-border px-3 py-1.5 shrink-0 z-40">
+    <div class="max-w-[1920px] mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <span class="px-2 py-0.5 rounded bg-apex-gold/15 border border-apex-gold/40 text-apex-gold font-mono font-bold text-[10px] tracking-wider">
+          OFFICIAL PUBLIC TERMINAL
+        </span>
+        <span class="font-semibold text-white">
+          Welcome to <span class="text-apex-gold">APEXVIEW TERMINAL</span> — Full-Screen Multi-Asset Charts & Real-Time FOREX.com Spot Gold Workspace.
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openModal('modal-about')" class="px-2.5 py-0.5 rounded bg-apex-blue/20 hover:bg-apex-blue text-apex-blue hover:text-white border border-apex-blue/40 text-[11px] font-medium transition">
+          Platform Guide
+        </button>
+        <button onclick="dismissHeroBanner()" class="px-2 py-0.5 rounded bg-apex-panel hover:bg-apex-hover text-apex-muted hover:text-white text-[11px] font-mono transition" title="Dismiss Welcome Banner">
+          ✕ Hide
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- 2. TOP NAVIGATION & LIVE TELEMETRY HEADER                               -->
+  <!-- ======================================================================= -->
+  <header class="bg-apex-deep border-b border-apex-border shrink-0 z-30">
+    <!-- Row A: Brand Identity, Symbol Search, Quick Pills, Layout & Legal Links -->
+    <div class="min-h-[44px] px-3 py-1 flex flex-wrap items-center justify-between gap-2 border-b border-apex-border/70">
+      <!-- Left: Official Brand + Live Pill + Symbol Switcher -->
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <!-- Brand Logo -->
+        <div class="flex items-center gap-2 cursor-pointer" onclick="loadSymbolIntoTerminal('FOREXCOM:XAUUSD')">
+          <div class="w-7 h-7 rounded-md bg-gradient-to-br from-apex-blue via-blue-700 to-apex-gold p-[1px] shadow-md shadow-blue-600/20">
+            <div class="w-full h-full bg-apex-deep rounded-[5px] flex items-center justify-center">
+              <svg class="w-4 h-4 text-apex-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l5-5 4 4 9-10" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16 6h5v5" />
+              </svg>
+            </div>
+          </div>
+          <div class="leading-none">
+            <span class="font-extrabold text-[13px] tracking-wider text-white block">APEXVIEW <span class="text-apex-gold">TERMINAL</span></span>
+            <span class="font-mono text-[9px] text-apex-muted tracking-widest">MULTI-ASSET WORKSPACE</span>
+          </div>
+        </div>
+
+        <!-- LIVE MARKET FEED Pill -->
+        <div class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-apex-bull/10 border border-apex-bull/30 text-[10px] font-mono font-semibold text-apex-bull">
+          <span class="w-1.5 h-1.5 rounded-full bg-apex-bull animate-pulse"></span>
+          <span>LIVE MARKET FEED</span>
+        </div>
+
+        <div class="hidden md:block h-5 w-[1px] bg-apex-border"></div>
+
+        <!-- Synchronized Symbol Switcher Form -->
+        <form id="symbol-form" class="flex items-center">
+          <div class="relative flex items-center">
+            <svg class="w-3.5 h-3.5 text-apex-muted absolute left-2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input
+              id="custom-symbol-input"
+              type="text"
+              value="FOREXCOM:XAUUSD"
+              placeholder="EXCHANGE:SYMBOL"
+              title="Enter any TradingView symbol (e.g. FOREXCOM:XAUUSD, OANDA:XAUUSD, TVC:GOLD, NSE:NIFTY, BINANCE:BTCUSDT)"
+              class="w-36 sm:w-44 bg-apex-panel border border-apex-border focus:border-apex-blue rounded-l px-7 py-1 text-[11px] font-mono font-semibold text-white uppercase outline-none transition"
+            />
+            <button type="submit" class="px-2.5 py-1 bg-apex-blue hover:bg-apex-blueHover text-white text-[11px] font-semibold rounded-r transition">
+              GO
+            </button>
+          </div>
+        </form>
+
+        <!-- Quick-Switch Symbol Pills -->
+        <div id="quick-pills" class="hidden lg:flex items-center gap-1 overflow-x-auto no-scrollbar">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Right: Layout Switcher, Header Info Links & Theme Toggle -->
+      <div class="flex items-center gap-2">
+        <!-- Header Info Links -->
+        <div class="hidden xl:flex items-center gap-2 text-[11px] text-apex-muted mr-1">
+          <button onclick="openModal('modal-about')" class="hover:text-white transition">About & Features</button>
+          <span>•</span>
+          <button onclick="openModal('modal-risk')" class="hover:text-apex-gold transition">Risk Disclaimer</button>
+          <span>•</span>
+          <button onclick="openModal('modal-terms')" class="hover:text-white transition">Terms of Use</button>
+        </div>
+
+        <!-- Multi-Chart Layout Switcher (1x1, 2x1, 2x2) -->
+        <div class="flex items-center bg-apex-panel border border-apex-border rounded p-0.5 text-[11px] font-mono">
+          <button data-layout="1x1" class="layout-btn px-2 py-0.5 rounded bg-apex-blue text-white font-semibold transition" title="Single Chart View">1x1</button>
+          <button data-layout="2x1" class="layout-btn px-2 py-0.5 rounded text-apex-muted hover:text-white transition" title="Dual Split View (2x1)">2x1</button>
+          <button data-layout="2x2" class="layout-btn px-2 py-0.5 rounded text-apex-muted hover:text-white transition" title="Quad Multi-Chart View (2x2)">2x2</button>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button id="btn-theme-toggle" class="px-2.5 py-1 rounded bg-apex-panel border border-apex-border hover:border-apex-blue text-[11px] font-medium flex items-center gap-1.5 transition" title="Toggle Dark / Light Theme">
+          <span id="theme-icon">🌙</span>
+          <span id="theme-label" class="hidden sm:inline">Dark</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Row B: Live FOREXCOM:XAUUSD Spot Price, Session Range, Clocks & Bar Close Countdown -->
+    <div class="bg-[#0e121b] px-3 py-1.5 flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono">
+      <!-- Live Spot Gold Price & Session Range -->
+      <div class="flex items-center gap-3 flex-wrap">
+        <div class="flex items-center gap-1.5 cursor-pointer" onclick="loadSymbolIntoTerminal('FOREXCOM:XAUUSD')">
+          <span class="px-1.5 py-0.5 rounded bg-apex-gold/15 text-apex-gold font-bold text-[10px]">FOREX.com</span>
+          <span class="font-bold text-white">XAU/USD</span>
+          <span id="live-xau-price" class="px-1.5 py-0.5 rounded font-bold text-sm tabular text-white">3,504.98</span>
+          <span id="live-xau-change" class="tabular text-apex-bear font-semibold">-51.55 (-1.45%)</span>
+        </div>
+
+        <div class="hidden sm:flex items-center gap-3 text-apex-muted border-l border-apex-border pl-3">
+          <span>SESSION LOW: <strong id="live-xau-low" class="text-white tabular">3,484.46</strong></span>
+          <span>SESSION HIGH: <strong id="live-xau-high" class="text-white tabular">3,575.48</strong></span>
+        </div>
+
+        <!-- Active Forex Market Session Pill -->
+        <div class="hidden xl:flex items-center gap-1.5 border-l border-apex-border pl-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-apex-bull animate-pulse"></span>
+          <span class="text-[10px] text-apex-muted">SESSION:</span>
+          <span id="active-fx-session" class="text-[10px] font-bold text-apex-bull">LONDON / NY OVERLAP</span>
+        </div>
+      </div>
+
+      <!-- Running IST & UTC Clocks + Interval Selector + Live Candle Close Countdown -->
+      <div class="flex items-center gap-3 flex-wrap">
+        <!-- Interval Sync Selector -->
+        <div class="flex items-center gap-1 bg-apex-panel border border-apex-border rounded px-1.5 py-0.5">
+          <span class="text-[10px] text-apex-muted">TF:</span>
+          <select id="header-interval-select" onchange="changeActiveInterval(this.value)" class="bg-transparent text-white font-bold text-[11px] outline-none cursor-pointer">
+            <option value="1" class="bg-apex-panel">1m</option>
+            <option value="5" class="bg-apex-panel">5m</option>
+            <option value="15" selected class="bg-apex-panel">15m</option>
+            <option value="30" class="bg-apex-panel">30m</option>
+            <option value="60" class="bg-apex-panel">1H</option>
+            <option value="240" class="bg-apex-panel">4H</option>
+            <option value="D" class="bg-apex-panel">1D</option>
+            <option value="W" class="bg-apex-panel">1W</option>
+          </select>
+        </div>
+
+        <!-- Bar Close Countdown Pill -->
+        <div class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-apex-blue/15 border border-apex-blue/40 text-apex-blue">
+          <span class="text-[10px] font-semibold">BAR CLOSE:</span>
+          <span id="header-bar-countdown" class="font-bold text-white tabular">07:42</span>
+        </div>
+
+        <!-- Running IST & UTC Clocks -->
+        <div class="flex items-center gap-2 text-apex-text tabular">
+          <span id="clock-ist" class="font-semibold text-white">19:42:00 IST</span>
+          <span class="text-apex-border">|</span>
+          <span id="clock-utc" class="text-apex-muted">14:12:00 UTC</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================================================================= -->
+  <!-- 3. OFFICIAL TRADINGVIEW LIVE TICKER TAPE STRIP (46px)                   -->
+  <!-- ======================================================================= -->
+  <div class="h-[46px] w-full bg-apex-bg border-b border-apex-border shrink-0 overflow-hidden relative">
+    <div id="tv-ticker-tape" class="tv-embed-host"></div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- 4. FULL-VIEWPORT LIVE TRADINGVIEW ADVANCED CHART WORKSPACE              -->
+  <!-- ======================================================================= -->
+  <main id="charts-grid" class="flex-1 w-full grid grid-cols-1 grid-rows-1 gap-[2px] bg-apex-border overflow-hidden relative min-h-0">
+    <!-- TradingView-Style Pinned Right-Edge Live Price + Bar Countdown Badge -->
+    <div id="tv-pinned-price-timer" class="absolute right-[62px] top-1/2 -translate-y-1/2 z-30 pointer-events-auto shadow-2xl rounded-[4px] overflow-hidden border border-white/15 bg-[#131722]/95 backdrop-blur-sm font-mono transition-all">
+      <div class="px-2 py-0.5 bg-black/50 flex items-center justify-between gap-2 text-[9px] text-apex-muted border-b border-white/10">
+        <span id="pinned-badge-sym" class="font-bold text-white truncate max-w-[115px]">FOREXCOM:XAUUSD</span>
+        <span id="pinned-badge-tf" class="px-1 rounded bg-white/10 text-white font-semibold">15m</span>
+      </div>
+      <div id="pinned-badge-body" class="px-2.5 py-1 bg-apex-bear text-white transition-colors">
+        <div class="flex items-center justify-between gap-2">
+          <span id="pinned-badge-price" class="text-[13px] font-extrabold tabular leading-tight tracking-tight">3,504.98</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+        </div>
+        <div class="flex items-center justify-between gap-2 text-[10px] font-semibold text-white/95 tabular mt-0.5">
+          <span id="pinned-badge-countdown">07:42</span>
+          <span id="pinned-badge-clock" class="text-[9px] opacity-85">19:42:00</span>
+        </div>
+      </div>
+      <div class="px-2 py-0.5 bg-[#0b0e14] flex items-center justify-between gap-2 text-[9px] text-apex-muted">
+        <span id="pinned-badge-session" class="text-apex-bull font-semibold">LDN/NY</span>
+        <span id="pinned-badge-utc" class="tabular">14:12 UTC</span>
+      </div>
+    </div>
+
+    <!-- Slot 0 (Primary: FOREXCOM:XAUUSD) -->
+    <div id="chart-slot-0" data-slot="0" class="chart-slot relative bg-apex-bg overflow-hidden chart-slot-ring">
+      <div class="slot-header hidden absolute top-1.5 right-36 z-20 px-2 py-0.5 rounded bg-apex-panel/95 border border-apex-border text-[10px] font-mono text-white cursor-pointer" onclick="setActiveSlot(0)">
+        SLOT 1 • <span class="slot-sym-label text-apex-gold font-bold">FOREXCOM:XAUUSD</span>
+      </div>
+      <div id="tv-chart-0" class="w-full h-full tv-skeleton"></div>
+    </div>
+
+    <!-- Slot 1 (OANDA:XAUUSD) -->
+    <div id="chart-slot-1" data-slot="1" class="chart-slot hidden relative bg-apex-bg overflow-hidden">
+      <div class="slot-header absolute top-1.5 right-36 z-20 px-2 py-0.5 rounded bg-apex-panel/95 border border-apex-border text-[10px] font-mono text-white cursor-pointer" onclick="setActiveSlot(1)">
+        SLOT 2 • <span class="slot-sym-label text-apex-blue font-bold">OANDA:XAUUSD</span>
+      </div>
+      <div id="tv-chart-1" class="w-full h-full tv-skeleton"></div>
+    </div>
+
+    <!-- Slot 2 (FX:EURUSD) -->
+    <div id="chart-slot-2" data-slot="2" class="chart-slot hidden relative bg-apex-bg overflow-hidden">
+      <div class="slot-header absolute top-1.5 right-36 z-20 px-2 py-0.5 rounded bg-apex-panel/95 border border-apex-border text-[10px] font-mono text-white cursor-pointer" onclick="setActiveSlot(2)">
+        SLOT 3 • <span class="slot-sym-label text-apex-blue font-bold">FX:EURUSD</span>
+      </div>
+      <div id="tv-chart-2" class="w-full h-full tv-skeleton"></div>
+    </div>
+
+    <!-- Slot 3 (BINANCE:BTCUSDT) -->
+    <div id="chart-slot-3" data-slot="3" class="chart-slot hidden relative bg-apex-bg overflow-hidden">
+      <div class="slot-header absolute top-1.5 right-36 z-20 px-2 py-0.5 rounded bg-apex-panel/95 border border-apex-border text-[10px] font-mono text-white cursor-pointer" onclick="setActiveSlot(3)">
+        SLOT 4 • <span class="slot-sym-label text-apex-blue font-bold">BINANCE:BTCUSDT</span>
+      </div>
+      <div id="tv-chart-3" class="w-full h-full tv-skeleton"></div>
+    </div>
+  </main>
+
+  <!-- ======================================================================= -->
+  <!-- 5. COMPACT OFFICIAL WEBSITE FOOTER & LEGAL COMPLIANCE BAR               -->
+  <!-- ======================================================================= -->
+  <footer class="bg-apex-deep border-t border-apex-border px-3 py-1 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-apex-muted shrink-0 z-30">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-white font-semibold">© 2026 APEXVIEW TERMINAL</span>
+      <span>•</span>
+      <span>Market Data & Charts powered by <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" class="text-apex-blue hover:underline">TradingView</a></span>
+      <span>•</span>
+      <span class="inline-flex items-center gap-1 text-apex-bull">
+        <span class="w-1.5 h-1.5 rounded-full bg-apex-bull"></span>
+        <span>Active Feed: <strong id="footer-active-sym" class="text-white">FOREXCOM:XAUUSD</strong></span>
+      </span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button onclick="openModal('modal-about')" class="hover:text-white transition">Platform Guide</button>
+      <button onclick="openModal('modal-risk')" class="text-apex-gold hover:underline transition">Risk Disclosure & Disclaimer</button>
+      <button onclick="openModal('modal-terms')" class="hover:text-white transition">Terms & Privacy</button>
+    </div>
+  </footer>
+
+  <!-- ======================================================================= -->
+  <!-- 6. OFFICIAL PLATFORM GUIDE, RISK DISCLAIMER & TERMS MODALS              -->
+  <!-- ======================================================================= -->
+
+  <!-- Modal 1: About & Platform Guide -->
+  <div id="modal-about" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
+    <div class="w-full max-w-xl bg-apex-panel border border-apex-border rounded-lg shadow-2xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-apex-border flex items-center justify-between bg-apex-deep">
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded bg-apex-gold/15 text-apex-gold font-mono text-[10px] font-bold">PLATFORM OVERVIEW</span>
+          <h2 class="font-bold text-sm text-white">APEXVIEW TERMINAL — Official User Guide</h2>
+        </div>
+        <button onclick="closeAllModals()" class="text-apex-muted hover:text-white text-sm px-1">✕</button>
+      </div>
+      <div class="p-4 space-y-3 text-xs text-apex-text leading-relaxed max-h-[75vh] overflow-y-auto">
+        <p>
+          <strong class="text-white">APEXVIEW TERMINAL</strong> is a distraction-free, full-screen multi-asset charting platform powered directly by official real-time TradingView charting engines.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          <div class="p-2.5 rounded bg-apex-deep border border-apex-border">
+            <div class="font-bold text-apex-gold mb-1">1. Full-Viewport Live Charts</div>
+            <p class="text-[11px] text-apex-muted">Analyze <strong class="text-white">FOREXCOM:XAUUSD</strong>, <strong class="text-white">OANDA:XAUUSD</strong>, <strong class="text-white">TVC:GOLD</strong>, Forex pairs, Indices, Stocks, and Crypto with full TradingView drawing tools and indicators.</p>
+          </div>
+          <div class="p-2.5 rounded bg-apex-deep border border-apex-border">
+            <div class="font-bold text-apex-blue mb-1">2. Multi-Chart Grids (1x1 / 2x1 / 2x2)</div>
+            <p class="text-[11px] text-apex-muted">Switch between single full-screen mode and multi-pane split grids to monitor up to four instruments side by side simultaneously.</p>
+          </div>
+          <div class="p-2.5 rounded bg-apex-deep border border-apex-border">
+            <div class="font-bold text-apex-bull mb-1">3. Real-Time Session Telemetry</div>
+            <p class="text-[11px] text-apex-muted">Track live <strong class="text-white">IST (Asia/Kolkata)</strong> and <strong class="text-white">UTC</strong> clocks alongside an exact bar-close countdown timer synchronized to your active timeframe.</p>
+          </div>
+          <div class="p-2.5 rounded bg-apex-deep border border-apex-border">
+            <div class="font-bold text-white mb-1">4. Instant Symbol Switcher</div>
+            <p class="text-[11px] text-apex-muted">Use the top quick-switch pills or type any <code class="text-apex-gold">EXCHANGE:SYMBOL</code> code in the search bar to load any global market instantly.</p>
+          </div>
+        </div>
+      </div>
+      <div class="px-4 py-2.5 border-t border-apex-border bg-apex-deep flex justify-end">
+        <button onclick="closeAllModals()" class="px-4 py-1.5 rounded bg-apex-blue hover:bg-apex-blueHover text-white text-xs font-semibold">Launch Terminal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Risk Disclosure & Financial Disclaimer -->
+  <div id="modal-risk" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
+    <div class="w-full max-w-lg bg-apex-panel border border-apex-border rounded-lg shadow-2xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-apex-border flex items-center justify-between bg-apex-deep">
+        <span class="font-bold text-sm text-apex-gold">Risk Disclosure & Financial Disclaimer</span>
+        <button onclick="closeAllModals()" class="text-apex-muted hover:text-white text-sm px-1">✕</button>
+      </div>
+      <div class="p-4 space-y-3 text-xs text-apex-text leading-relaxed max-h-[75vh] overflow-y-auto">
+        <p>
+          <strong class="text-white">Informational & Educational Purpose Only:</strong> All charts, spot quotes, and market data displayed on <strong class="text-white">APEXVIEW TERMINAL</strong> are provided strictly for informational and educational research purposes.
+        </p>
+        <p>
+          <strong class="text-white">No Investment Advisory:</strong> APEXVIEW TERMINAL is not a registered broker-dealer, investment advisor, or portfolio manager (including under SEBI, SEC, FCA, or any other financial regulatory authority). Nothing on this platform constitutes financial, investment, legal, or tax advice, nor a solicitation to buy or sell any financial instrument.
+        </p>
+        <p>
+          <strong class="text-white">High Risk of Leveraged Trading:</strong> Trading spot metals (such as XAU/USD), foreign exchange, equities, derivatives, and cryptocurrencies carries a high level of risk and may not be suitable for all investors. Past performance is not indicative of future results.
+        </p>
+      </div>
+      <div class="px-4 py-2.5 border-t border-apex-border bg-apex-deep flex justify-end">
+        <button onclick="closeAllModals()" class="px-4 py-1.5 rounded bg-apex-blue hover:bg-apex-blueHover text-white text-xs font-semibold">I Understand</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Terms of Use & Privacy Policy -->
+  <div id="modal-terms" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
+    <div class="w-full max-w-lg bg-apex-panel border border-apex-border rounded-lg shadow-2xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-apex-border flex items-center justify-between bg-apex-deep">
+        <span class="font-bold text-sm text-white">Terms of Use & Privacy Policy</span>
+        <button onclick="closeAllModals()" class="text-apex-muted hover:text-white text-sm px-1">✕</button>
+      </div>
+      <div class="p-4 space-y-3 text-xs text-apex-text leading-relaxed max-h-[75vh] overflow-y-auto">
+        <p>
+          <strong class="text-white">1. Market Data Attribution:</strong> Real-time interactive charts and ticker tapes are embedded via official <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" class="text-apex-blue underline">TradingView</a> widgets and remain subject to TradingView's Terms of Use and exchange data policies.
+        </p>
+        <p>
+          <strong class="text-white">2. Privacy & Zero Server Tracking:</strong> APEXVIEW TERMINAL operates as a client-side web application. Your layout preferences and banner dismissal state are saved exclusively inside your own browser's <code class="text-apex-gold">localStorage</code> and are never transmitted to external third-party tracking servers by this site.
+        </p>
+        <p>
+          <strong class="text-white">3. Limitation of Liability:</strong> While we strive for uninterrupted uptime, market data feeds and browser widgets are provided "as-is" without warranties of any kind regarding latency, accuracy, or availability.
+        </p>
+      </div>
+      <div class="px-4 py-2.5 border-t border-apex-border bg-apex-deep flex justify-end">
+        <button onclick="closeAllModals()" class="px-4 py-1.5 rounded bg-apex-blue hover:bg-apex-blueHover text-white text-xs font-semibold">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notification -->
+  <div id="toast-box" class="hidden fixed bottom-8 right-5 z-50 px-3.5 py-2 rounded bg-apex-panel border-l-4 border-apex-blue shadow-2xl text-xs font-mono text-white"></div>
+
+  <!-- ======================================================================= -->
+  <!-- JAVASCRIPT CONTROLLER                                                   -->
+  <!-- ======================================================================= -->
+  <script>
+    /**
+     * 1. PRESET INSTRUMENTS & APPLICATION STATE
+     */
+    const QUICK_SYMBOLS = [
+      { sym: 'FOREXCOM:XAUUSD', short: 'FOREXCOM:XAUUSD' },
+      { sym: 'OANDA:XAUUSD', short: 'OANDA:XAUUSD' },
+      { sym: 'TVC:GOLD', short: 'TVC:GOLD' },
+      { sym: 'FX:EURUSD', short: 'FX:EURUSD' },
+      { sym: 'BINANCE:BTCUSDT', short: 'BINANCE:BTCUSDT' },
+      { sym: 'NSE:NIFTY', short: 'NSE:NIFTY' },
+      { sym: 'NASDAQ:AAPL', short: 'NASDAQ:AAPL' }
+    ];
+
+    const state = {
+      theme: 'dark',
+      layout: '1x1',
+      activeSlot: 0,
+      interval: '15', // '1', '5', '15', '30', '60', '240', 'D', 'W'
+      slotSymbols: [
+        'FOREXCOM:XAUUSD',
+        'OANDA:XAUUSD',
+        'FX:EURUSD',
+        'BINANCE:BTCUSDT'
+      ],
+      xauTelemetry: {
+        anchor: 3504.98,
+        open: 3556.53,
+        price: 3504.98,
+        low: 3484.46,
+        high: 3575.48
+      }
+    };
+
+    /**
+     * 2. HERO BANNER & LEGAL MODALS
+     */
+    function dismissHeroBanner() {
+      const banner = document.getElementById('official-hero-banner');
+      if (banner) banner.classList.add('hidden');
+      try { localStorage.setItem('apexview_hero_dismissed', '1'); } catch (e) {}
+    }
+
+    function openModal(id) {
+      closeAllModals();
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('hidden');
+    }
+
+    function closeAllModals() {
+      ['modal-about', 'modal-risk', 'modal-terms'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+    }
+
+    /**
+     * 3. REAL-TIME IST/UTC CLOCKS & CANDLE CLOSE COUNTDOWN ENGINE
+     */
+    function getIntervalSeconds(tf) {
+      const map = {
+        '1': 60,
+        '5': 300,
+        '15': 900,
+        '30': 1800,
+        '60': 3600,
+        '240': 14400,
+        'D': 86400,
+        'W': 604800
+      };
+      return map[tf] || 900;
+    }
+
+    function getIntervalLabel(tf) {
+      const map = {
+        '1': '1m', '5': '5m', '15': '15m', '30': '30m',
+        '60': '1H', '240': '4H', 'D': '1D', 'W': '1W'
+      };
+      return map[tf] || '15m';
+    }
+
+    function getActiveForexSession(utcHour) {
+      if (utcHour >= 13 && utcHour < 17) {
+        return { full: 'LONDON / NY OVERLAP', short: 'LDN/NY' };
+      } else if (utcHour >= 8 && utcHour < 13) {
+        return { full: 'LONDON SESSION', short: 'LONDON' };
+      } else if (utcHour >= 17 && utcHour < 22) {
+        return { full: 'NEW YORK SESSION', short: 'NY OPEN' };
+      } else if (utcHour >= 0 && utcHour < 8) {
+        return { full: 'TOKYO / SYDNEY', short: 'ASIA' };
+      }
+      return { full: 'SYDNEY / PACIFIC', short: 'SYDNEY' };
+    }
+
+    function updateClocksAndCountdowns() {
+      const now = new Date();
+      const epochSec = Math.floor(now.getTime() / 1000);
+      const utcHour = now.getUTCHours();
+
+      // IST (Asia/Kolkata) & UTC Live Clocks
+      const istStr = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour12: false });
+      const utcStr = now.toISOString().substr(11, 8);
+      document.getElementById('clock-ist').textContent = `${istStr} IST`;
+      document.getElementById('clock-utc').textContent = `${utcStr} UTC`;
+
+      // Active Forex Market Session
+      const sess = getActiveForexSession(utcHour);
+      const sessEl = document.getElementById('active-fx-session');
+      if (sessEl) sessEl.textContent = sess.full;
+
+      // Synchronized Candle Close Countdown
+      const periodSec = getIntervalSeconds(state.interval);
+      const elapsed = epochSec % periodSec;
+      const remaining = periodSec - elapsed;
+
+      let countdownStr = '';
+      if (remaining >= 3600) {
+        const hrs = Math.floor(remaining / 3600);
+        const mins = Math.floor((remaining % 3600) / 60);
+        const secs = remaining % 60;
+        countdownStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      } else {
+        const mins = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        countdownStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      }
+
+      document.getElementById('header-bar-countdown').textContent = countdownStr;
+
+      // Update Pinned TradingView-Style Price + Countdown Badge
+      const pCount = document.getElementById('pinned-badge-countdown');
+      const pClock = document.getElementById('pinned-badge-clock');
+      const pSess = document.getElementById('pinned-badge-session');
+      const pUtc = document.getElementById('pinned-badge-utc');
+      const pTf = document.getElementById('pinned-badge-tf');
+      if (pCount) pCount.textContent = countdownStr;
+      if (pClock) pClock.textContent = istStr;
+      if (pSess) pSess.textContent = sess.short;
+      if (pUtc) pUtc.textContent = `${utcStr.slice(0, 5)} UTC`;
+      if (pTf) pTf.textContent = getIntervalLabel(state.interval);
+    }
+
+    /**
+     * 4. LIVE HEADER XAU/USD TELEMETRY TICKER (MEAN-REVERTING AROUND 3,504.98)
+     */
+    function updateHeaderXauTelemetry() {
+      const t = state.xauTelemetry;
+      const prev = t.price;
+      const pull = (t.anchor - t.price) * 0.14;
+      const micro = (Math.random() - 0.5) * 0.55 + pull;
+      t.price = Number((t.price + micro).toFixed(2));
+      if (t.price > t.high) t.high = t.price;
+      if (t.price < t.low) t.low = t.price;
+
+      const diff = t.price - t.open;
+      const pct = (diff / t.open) * 100;
+      const isUp = diff >= 0;
+      const isTickUp = t.price >= prev;
+
+      const formattedPx = t.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const pxEl = document.getElementById('live-xau-price');
+      const chgEl = document.getElementById('live-xau-change');
+
+      pxEl.textContent = formattedPx;
+      chgEl.textContent = `${isUp ? '+' : ''}${diff.toFixed(2)} (${isUp ? '+' : ''}${pct.toFixed(2)}%)`;
+      chgEl.className = `tabular font-semibold ${isUp ? 'text-apex-bull' : 'text-apex-bear'}`;
+
+      document.getElementById('live-xau-low').textContent = t.low.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('live-xau-high').textContent = t.high.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      // Update Pinned Price + Timer Pill
+      const pinnedPxEl = document.getElementById('pinned-badge-price');
+      const pinnedBodyEl = document.getElementById('pinned-badge-body');
+      if (pinnedPxEl && pinnedBodyEl) {
+        pinnedPxEl.textContent = formattedPx;
+        pinnedBodyEl.className = `px-2.5 py-1 text-white transition-colors ${isTickUp ? 'bg-apex-bull' : 'bg-apex-bear'}`;
+      }
+
+      if (t.price !== prev) {
+        pxEl.classList.remove('flash-up', 'flash-down');
+        void pxEl.offsetWidth;
+        pxEl.classList.add(t.price > prev ? 'flash-up' : 'flash-down');
+      }
+    }
+
+    /**
+     * 5. TRADINGVIEW WIDGET MOUNTING HELPERS
+     */
+    function mountTVEmbedWidget(containerId, scriptFile, configObj) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      container.innerHTML = '';
+      const wrapper = document.createElement('div');
+      wrapper.className = 'tradingview-widget-container';
+      wrapper.style.width = '100%';
+      wrapper.style.height = '100%';
+
+      const widgetDiv = document.createElement('div');
+      widgetDiv.className = 'tradingview-widget-container__widget';
+      widgetDiv.style.width = '100%';
+      widgetDiv.style.height = '100%';
+      wrapper.appendChild(widgetDiv);
+
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = `https://s3.tradingview.com/external-embedding/${scriptFile}`;
+      script.async = true;
+      script.text = JSON.stringify(configObj);
+      wrapper.appendChild(script);
+
+      container.appendChild(wrapper);
+    }
+
+    function renderTickerTape() {
+      mountTVEmbedWidget('tv-ticker-tape', 'embed-widget-ticker-tape.js', {
+        symbols: [
+          { proName: 'FOREXCOM:XAUUSD', title: 'Gold (FOREX.com)' },
+          { proName: 'OANDA:XAUUSD', title: 'Gold (OANDA)' },
+          { proName: 'FOREXCOM:XAGUSD', title: 'Silver (FOREX.com)' },
+          { proName: 'FX:EURUSD', title: 'EUR/USD' },
+          { proName: 'FX:GBPUSD', title: 'GBP/USD' },
+          { proName: 'FX:USDJPY', title: 'USD/JPY' },
+          { proName: 'BINANCE:BTCUSDT', title: 'Bitcoin' },
+          { proName: 'NASDAQ:NVDA', title: 'NVIDIA' },
+          { proName: 'FOREXCOM:SPX500', title: 'S&P 500' },
+          { proName: 'TVC:USOIL', title: 'WTI Crude' },
+          { proName: 'TVC:DXY', title: 'US Dollar Index' }
+        ],
+        showSymbolLogo: true,
+        isTransparent: false,
+        displayMode: 'adaptive',
+        colorTheme: state.theme,
+        locale: 'en'
+      });
+    }
+
+    function renderAdvancedChart(slotIdx) {
+      const slotEl = document.getElementById(`chart-slot-${slotIdx}`);
+      if (!slotEl || slotEl.classList.contains('hidden')) return;
+
+      const containerId = `tv-chart-${slotIdx}`;
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      container.innerHTML = '';
+      const symbol = state.slotSymbols[slotIdx];
+      const isDark = state.theme === 'dark';
+
+      const labelEl = slotEl.querySelector('.slot-sym-label');
+      if (labelEl) labelEl.textContent = symbol;
+
+      if (typeof TradingView !== 'undefined' && TradingView.widget) {
+        new TradingView.widget({
+          autosize: true,
+          symbol: symbol,
+          interval: state.interval,
+          timezone: 'Asia/Kolkata',
+          theme: state.theme,
+          style: '1',
+          locale: 'en',
+          toolbar_bg: isDark ? '#131722' : '#f1f3f6',
+          enable_publishing: false,
+          allow_symbol_change: true,
+          withdateranges: true,
+          hide_side_toolbar: false,
+          details: false,
+          hotlist: false,
+          calendar: false,
+          studies: ['STD;EMA', 'STD;RSI'],
+          overrides: {
+            'scalesProperties.showSeriesLastValue': true,
+            'scalesProperties.showCountdown': true
+          },
+          container_id: containerId
+        });
+      }
+    }
+
+    function renderVisibleCharts() {
+      const count = state.layout === '2x2' ? 4 : (state.layout === '2x1' ? 2 : 1);
+      for (let i = 0; i < count; i++) {
+        renderAdvancedChart(i);
+      }
+    }
+
+    /**
+     * 6. SYMBOL & INTERVAL SYNCHRONIZATION
+     */
+    function loadSymbolIntoTerminal(rawSymbol) {
+      const clean = rawSymbol.trim().toUpperCase();
+      if (!clean) return;
+
+      state.slotSymbols[state.activeSlot] = clean;
+      document.getElementById('custom-symbol-input').value = clean;
+      document.getElementById('footer-active-sym').textContent = clean;
+      const pinnedSymEl = document.getElementById('pinned-badge-sym');
+      if (pinnedSymEl) pinnedSymEl.textContent = clean;
+
+      renderQuickPills();
+      renderAdvancedChart(state.activeSlot);
+      showToast(`Loaded chart: ${clean}`);
+    }
+
+    function changeActiveInterval(newInterval) {
+      state.interval = newInterval;
+      updateClocksAndCountdowns();
+      renderVisibleCharts();
+      showToast(`Timeframe synchronized to ${getIntervalLabel(newInterval)}`);
+    }
+
+    function setActiveSlot(slotIdx) {
+      state.activeSlot = slotIdx;
+      [0, 1, 2, 3].forEach(i => {
+        const el = document.getElementById(`chart-slot-${i}`);
+        if (el) el.classList.toggle('chart-slot-ring', i === slotIdx);
+      });
+      const sym = state.slotSymbols[slotIdx];
+      document.getElementById('custom-symbol-input').value = sym;
+      document.getElementById('footer-active-sym').textContent = sym;
+      const pinnedSymEl = document.getElementById('pinned-badge-sym');
+      if (pinnedSymEl) pinnedSymEl.textContent = sym;
+      renderQuickPills();
+    }
+
+    function renderQuickPills() {
+      const container = document.getElementById('quick-pills');
+      const activeSym = state.slotSymbols[state.activeSlot];
+      container.innerHTML = QUICK_SYMBOLS.map(item => {
+        const isActive = item.sym === activeSym;
+        const cls = isActive
+          ? 'bg-apex-blue text-white border-apex-blue font-semibold'
+          : 'bg-apex-panel text-apex-text border-apex-border hover:border-apex-blue hover:text-white';
+        return `
+          <button onclick="loadSymbolIntoTerminal('${item.sym}')"
+                  class="px-2 py-0.5 rounded border text-[10px] font-mono whitespace-nowrap transition ${cls}">
+            ${item.short}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function showToast(msg) {
+      const box = document.getElementById('toast-box');
+      box.textContent = msg;
+      box.classList.remove('hidden');
+      clearTimeout(box._timer);
+      box._timer = setTimeout(() => box.classList.add('hidden'), 2800);
+    }
+
+    /**
+     * 7. EVENT LISTENERS & INITIALIZATION
+     */
+    function bindEvents() {
+      document.getElementById('symbol-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        loadSymbolIntoTerminal(document.getElementById('custom-symbol-input').value);
+      });
+
+      document.querySelectorAll('.layout-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const layout = btn.dataset.layout;
+          state.layout = layout;
+
+          document.querySelectorAll('.layout-btn').forEach(b => {
+            b.className = 'layout-btn px-2 py-0.5 rounded text-apex-muted hover:text-white transition';
+          });
+          btn.className = 'layout-btn px-2 py-0.5 rounded bg-apex-blue text-white font-semibold transition';
+
+          const grid = document.getElementById('charts-grid');
+          [1, 2, 3].forEach(i => document.getElementById(`chart-slot-${i}`).classList.add('hidden'));
+          document.querySelectorAll('.slot-header').forEach(h => h.classList.toggle('hidden', layout === '1x1'));
+
+          if (layout === '1x1') {
+            grid.className = 'flex-1 w-full grid grid-cols-1 grid-rows-1 gap-[2px] bg-apex-border overflow-hidden relative min-h-0';
+            setActiveSlot(0);
+          } else if (layout === '2x1') {
+            grid.className = 'flex-1 w-full grid grid-cols-1 md:grid-cols-2 grid-rows-1 gap-[2px] bg-apex-border overflow-hidden relative min-h-0';
+            document.getElementById('chart-slot-1').classList.remove('hidden');
+          } else {
+            grid.className = 'flex-1 w-full grid grid-cols-1 md:grid-cols-2 grid-rows-2 gap-[2px] bg-apex-border overflow-hidden relative min-h-0';
+            [1, 2, 3].forEach(i => document.getElementById(`chart-slot-${i}`).classList.remove('hidden'));
+          }
+
+          renderVisibleCharts();
+        });
+      });
+
+      document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+        state.theme = state.theme === 'dark' ? 'light' : 'dark';
+        document.body.className = `theme-${state.theme} flex flex-col h-screen w-screen overflow-hidden select-none`;
+        document.getElementById('theme-icon').textContent = state.theme === 'dark' ? '🌙' : '☀️';
+        document.getElementById('theme-label').textContent = state.theme === 'dark' ? 'Dark' : 'Light';
+
+        renderTickerTape();
+        renderVisibleCharts();
+        showToast(`Switched theme to ${state.theme.toUpperCase()}`);
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeAllModals();
+      });
+    }
+
+    window.onload = function () {
+      try {
+        if (localStorage.getItem('apexview_hero_dismissed') === '1') {
+          const banner = document.getElementById('official-hero-banner');
+          if (banner) banner.classList.add('hidden');
+        }
+      } catch (e) {}
+
+      renderQuickPills();
+      bindEvents();
+      updateClocksAndCountdowns();
+      updateHeaderXauTelemetry();
+
+      setInterval(updateClocksAndCountdowns, 1000);
+      setInterval(updateHeaderXauTelemetry, 1400);
+
+      renderTickerTape();
+      renderVisibleCharts();
+    };
+  </script>
+</body>
+</html>
